@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Enhanced markdown-like formatter for better text display
-const formatContent = (content: string) => {
+const formatContent = (content: string, isUser: boolean = false) => {
     if (!content) return content;
+
+    // For user messages, just return simple white text without formatting
+    if (isUser) {
+        return <div className="text-white">{content}</div>;
+    }
 
     // Handle code blocks first
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -363,7 +368,11 @@ const MessageArea = ({ messages }: MessageAreaProps) => {
                                 ) : (
                                     <div className="pr-8">
                                         {message.content ? (
-                                            formatContent(message.content)
+                                            message.isUser ? (
+                                                <div className="text-white">{message.content}</div>
+                                            ) : (
+                                                formatContent(message.content, message.isUser)
+                                            )
                                         ) : (
                                             // Fallback if content is empty but not in loading state
                                             <span className="text-gray-400 text-xs italic">Waiting for response...</span>

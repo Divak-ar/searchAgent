@@ -34,7 +34,42 @@ llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash')
 llm_with_tools = llm.bind_tools(tools=tools)
 
 async def model(state: State):
-    result = await llm_with_tools.ainvoke(state["messages"])
+    # Add instructions to try answering first before searching
+    messages = state["messages"]
+    last_message = messages[-1] if messages else None
+    
+    # If this is a user message, modify it to instruct the AI to try answering first
+    if last_message and hasattr(last_message, 'content') and not hasattr(last_message, 'tool_calls'):
+        # Check if the message looks like it might need real-time information
+        content = last_message.content.lower()
+        needs_search_keywords = [
+            'latest', 'recent', 'current', 'today', 'now', 'this year', 'this month', 
+            'news', 'breaking', 'update', 'status', 'price', 'stock', 'weather',
+            'when is', 'what happened', 'who won', 'result', 'score'
+        ]
+        
+        likely_needs_search = any(keyword in content for keyword in needs_search_keywords)
+        
+        if not likely_needs_search:
+            # Add instruction to try answering from knowledge first
+            system_instruction = """Try to answer the question using your existing knowledge first. Only use the search tool if:
+1. The question requires very recent information (news, current events, latest updates)
+2. The question is about specific real-time data (stock prices, weather, sports scores)
+3. You genuinely don't know the answer from your training data
+
+If you can provide a helpful answer from your knowledge, do so without searching."""
+            
+            # Create a modified message with the instruction
+            modified_messages = [
+                HumanMessage(content=f"{system_instruction}\n\nUser question: {last_message.content}")
+            ] + messages[:-1]
+            
+            result = await llm_with_tools.ainvoke(modified_messages)
+        else:
+            result = await llm_with_tools.ainvoke(state["messages"])
+    else:
+        result = await llm_with_tools.ainvoke(state["messages"])
+        
     return {
         "messages": [result], 
     }
@@ -47,8 +82,13 @@ async def tools_router(state: State):
     else: 
         return END
     
+# Global variable to store max search results
+current_max_search_results = 3
+
 async def tool_node(state):
     """Custom tool node that handles tool calls from the LLM."""
+    global current_max_search_results
+    
     # Get the tool calls from the last message
     tool_calls = state["messages"][-1].tool_calls
     
@@ -63,8 +103,11 @@ async def tool_node(state):
         
         # Handle the search tool
         if tool_name == "tavily_search_results_json":
+            # Create a dynamic search tool with the current max_results setting
+            dynamic_search_tool = TavilySearchResults(max_results=current_max_search_results)
+            
             # Execute the search tool with the provided arguments
-            search_results = await search_tool.ainvoke(tool_args)
+            search_results = await dynamic_search_tool.ainvoke(tool_args)
             
             # Create a ToolMessage for this result
             tool_message = ToolMessage(
@@ -122,7 +165,11 @@ def serialise_ai_message_chunk(chunk):
         )
 
 
-async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = None, session_context: Optional[str] = None):
+async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = None, session_context: Optional[str] = None, max_search_results: Optional[int] = 3):
+    global current_max_search_results
+    # Set the max search results for this request
+    current_max_search_results = max_search_results or 3
+    
     try:
         is_new_conversation = checkpoint_id is None
         
@@ -222,9 +269,9 @@ async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = N
 
 @app.get("/chat_stream/{message}")
 # SSE - server-sent events 
-async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None), session_context: Optional[str] = Query(None)):
+async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None), session_context: Optional[str] = Query(None), max_search_results: Optional[int] = Query(3)):
     return StreamingResponse(
-        generate_chat_responses(message, checkpoint_id, session_context), 
+        generate_chat_responses(message, checkpoint_id, session_context, max_search_results), 
         media_type="text/event-stream"
     )
 

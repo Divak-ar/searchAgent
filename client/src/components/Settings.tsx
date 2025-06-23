@@ -1,57 +1,31 @@
 import { useState } from 'react';
 
-const Settings = () => {
-    const [settings, setSettings] = useState({
-        theme: 'light',
-        searchResults: 4,
-        streamingEnabled: true,
-        autoScroll: true,
-        copyOnSelect: false
-    });
+interface SettingsProps {
+    settings: {
+        searchResults: number;
+        streamingEnabled: boolean;
+        autoScroll: boolean;
+        copyOnSelect: boolean;
+    };
+    onSettingsChange: (settings: any) => void;
+}
 
+const Settings = ({ settings, onSettingsChange }: SettingsProps) => {
     const handleSettingChange = (key: string, value: any) => {
-        setSettings(prev => ({
-            ...prev,
+        const newSettings = {
+            ...settings,
             [key]: value
-        }));
+        };
+        onSettingsChange(newSettings);
     };
 
     return (
-        <div className="flex-grow bg-[#FCFCF8] overflow-y-auto">
+        <div className="flex-grow bg-gray-50 overflow-y-auto">
             <div className="max-w-3xl mx-auto p-8">
                 <div className="mb-8">
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">Settings</h2>
                     <p className="text-gray-600">Customize your Search Agent experience</p>
-                </div>
-
-                <div className="space-y-8">
-                    {/* Appearance Section */}
-                    <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                        <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                            <svg className="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"></path>
-                            </svg>
-                            Appearance
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Theme</label>
-                                    <p className="text-xs text-gray-500">Choose your preferred theme</p>
-                                </div>
-                                <select
-                                    value={settings.theme}
-                                    onChange={(e) => handleSettingChange('theme', e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                >
-                                    <option value="light">Light</option>
-                                    <option value="dark">Dark</option>
-                                    <option value="auto">Auto</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
+                </div>                <div className="space-y-8">
                     {/* Search Section */}
                     <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                         <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
@@ -63,24 +37,23 @@ const Settings = () => {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Max Search Results</label>
-                                    <p className="text-xs text-gray-500">Number of search results to analyze</p>
+                                    <label className="text-sm font-medium text-gray-800">Max Search Results</label>
+                                    <p className="text-xs text-gray-600">Number of search results to analyze</p>
                                 </div>
                                 <select
                                     value={settings.searchResults}
                                     onChange={(e) => handleSettingChange('searchResults', parseInt(e.target.value))}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                    className="px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50 text-green-800"
                                 >
-                                    <option value={2}>2 Results</option>
-                                    <option value={4}>4 Results</option>
-                                    <option value={6}>6 Results</option>
-                                    <option value={8}>8 Results</option>
+                                    <option value={1} className="bg-green-50 text-green-800">1 Result</option>
+                                    <option value={2} className="bg-green-50 text-green-800">2 Results</option>
+                                    <option value={3} className="bg-green-50 text-green-800">3 Results</option>
+                                    <option value={4} className="bg-green-50 text-green-800">4 Results</option>
+                                    <option value={5} className="bg-green-50 text-green-800">5 Results</option>
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Interface Section */}
+                    </div>                    {/* Interface Section */}
                     <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
                         <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                             <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,12 +64,12 @@ const Settings = () => {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Real-time Streaming</label>
-                                    <p className="text-xs text-gray-500">Enable live response streaming</p>
+                                    <label className="text-sm font-medium text-gray-800">Real-time Streaming</label>
+                                    <p className="text-xs text-gray-600">Enable live response streaming</p>
                                 </div>
                                 <button
                                     onClick={() => handleSettingChange('streamingEnabled', !settings.streamingEnabled)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.streamingEnabled ? 'bg-teal-500' : 'bg-gray-300'
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.streamingEnabled ? 'bg-green-500' : 'bg-gray-300'
                                         }`}
                                 >
                                     <span
@@ -107,12 +80,12 @@ const Settings = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Auto Scroll</label>
-                                    <p className="text-xs text-gray-500">Automatically scroll to new messages</p>
+                                    <label className="text-sm font-medium text-gray-800">Auto Scroll</label>
+                                    <p className="text-xs text-gray-600">Automatically scroll to new messages</p>
                                 </div>
                                 <button
                                     onClick={() => handleSettingChange('autoScroll', !settings.autoScroll)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.autoScroll ? 'bg-teal-500' : 'bg-gray-300'
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.autoScroll ? 'bg-green-500' : 'bg-gray-300'
                                         }`}
                                 >
                                     <span
@@ -123,12 +96,12 @@ const Settings = () => {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700">Copy on Select</label>
-                                    <p className="text-xs text-gray-500">Automatically copy selected text</p>
+                                    <label className="text-sm font-medium text-gray-800">Copy on Select</label>
+                                    <p className="text-xs text-gray-600">Automatically copy selected text</p>
                                 </div>
                                 <button
                                     onClick={() => handleSettingChange('copyOnSelect', !settings.copyOnSelect)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.copyOnSelect ? 'bg-teal-500' : 'bg-gray-300'
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.copyOnSelect ? 'bg-green-500' : 'bg-gray-300'
                                         }`}
                                 >
                                     <span
@@ -147,28 +120,26 @@ const Settings = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             System Information
-                        </h3>
-                        <div className="space-y-3 text-sm">
+                        </h3>                        <div className="space-y-3 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Version</span>
-                                <span className="font-medium">2.0.0</span>
+                                <span className="text-black font-medium">Version</span>
+                                <span className="font-medium text-black">2.0.0</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">AI Model</span>
-                                <span className="font-medium">Gemini 2.0 Flash</span>
+                                <span className="text-black font-medium">AI Model</span>
+                                <span className="font-medium text-black">Gemini 2.0 Flash</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Search Provider</span>
-                                <span className="font-medium">Tavily API</span>
+                                <span className="text-black font-medium">Search Provider</span>
+                                <span className="font-medium text-black">Tavily API</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Backend Status</span>
+                                <span className="text-green-600">Backend Status</span>
                                 <span className="flex items-center">
                                     <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
                                     <span className="font-medium text-green-600">Online</span>
                                 </span>
-                            </div>
-                        </div>
+                            </div>                        </div>
                     </div>
                 </div>
             </div>

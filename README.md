@@ -1,18 +1,29 @@
 # Search Agent - AI-Powered Web Search Assistant
 
-A modern AI-powered search application that combines web search capabilities with conversational AI to provide comprehensive answers to user queries.
+A modern, responsive AI-powered search application that combines web search capabilities with conversational AI to provide comprehensive answers to user queries.
 
-## Features
+## ✨ Features
 
 - 🔍 **Intelligent Web Search**: Uses Tavily API for real-time web search
 - 🤖 **AI-Powered Responses**: Powered by Google Gemini 2.0 Flash model
 - 💬 **Real-time Streaming**: Server-sent events for live response streaming
 - 🎯 **Search Progress Tracking**: Visual indicators for search stages
 - 📋 **Copy Functionality**: Easy copy-to-clipboard for AI responses
-- 🔄 **New Chat Sessions**: Start fresh conversations anytime
-- 📱 **Responsive Design**: Beautiful and modern UI with Tailwind CSS
+- 🔄 **Session Management**: Start fresh conversations anytime
+- 🎨 **Session Context**: Custom prompt engineering for personalized AI responses
+- 💡 **Interactive UI**: Modern design with smooth animations
 
-## Architecture
+## 📸 Screenshots
+
+### Main Application Interface
+![Search Agent Main Interface](screenshot/image.png)
+*The main chat interface showing real-time AI responses with web search integration*
+
+### Custom Session Context
+![Custom Session Context](screenshot/custom_prompt.png)
+*Session Context feature allowing users to customize AI behavior with predefined presets or custom prompts*
+
+## 🏗️ Architecture
 
 ### Backend (Python/FastAPI)
 
@@ -25,11 +36,11 @@ A modern AI-powered search application that combines web search capabilities wit
 ### Frontend (Next.js/React)
 
 - **Next.js 15**: React framework with TypeScript
-- **Tailwind CSS**: Utility-first CSS framework
+- **Tailwind CSS**: Utility-first CSS framework for responsive design
 - **Server-Sent Events**: Real-time communication with backend
 - **TypeScript**: Type-safe development
 
-## Setup Instructions
+## 🚀 Setup Instructions
 
 ### Prerequisites
 
@@ -47,7 +58,17 @@ A modern AI-powered search application that combines web search capabilities wit
    cd server
    ```
 
-2. Create a virtual environment:
+2. Create and activate a virtual environment:
+
+   ```bash
+   # Windows
+   python -m venv venv
+   venv\Scripts\activate
+
+   # macOS/Linux
+   python -m venv venv
+   source venv/bin/activate
+   ```
 
    ```bash
    python -m venv venv
@@ -105,11 +126,17 @@ The application will be available at:
 - Backend: http://localhost:8000
 - Backend Health Check: http://localhost:8000/health
 
-## API Endpoints
+## 🔗 API Endpoints
 
 ### GET /health
 
 Health check endpoint to verify backend status.
+
+**Response**: `{"status": "healthy", "timestamp": "..."}`
+
+### GET /status
+
+Detailed system status including AI model and search provider information.
 
 ### GET /
 
@@ -117,12 +144,21 @@ Welcome message with available endpoints.
 
 ### GET /chat_stream/{message}
 
-Streaming chat endpoint with optional checkpoint_id parameter for conversation continuity.
+Streaming chat endpoint with optional parameters for conversation continuity and session context.
 
-Parameters:
+**Parameters:**
 
 - `message`: The user's query (URL encoded)
 - `checkpoint_id`: Optional conversation ID for multi-turn conversations
+- `session_context`: Optional custom context to guide AI responses
+
+**Response**: Server-sent events stream with:
+
+- `checkpoint`: New conversation ID
+- `search_start`: Search initiation with query
+- `search_results`: Found URLs and sources
+- `content`: Streamed AI response chunks
+- `end`: Stream completion signal
 
 ## Usage
 
@@ -130,7 +166,37 @@ Parameters:
 2. Type your question in the input field
 3. Watch as the AI searches the web and compiles a response
 4. Copy responses using the copy button
-5. Start new conversations using the "+" button in the header
+
+
+### Navigation
+
+- **Home Tab**: Welcome page with project overview and "Perplexity 2.0" branding
+- **Chat Tab**: Main conversational interface with AI search capabilities
+- **Settings Tab**: Customize your experience (theme, search preferences, etc.)
+
+### Session Context Feature
+
+1. Click the large **Session Context** button (bottom-right corner)
+2. Choose from **Quick Presets**:
+   - General Assistant
+   - Technical Expert
+   - Research Assistant
+   - Simple Explainer
+3. Or write your own **Custom Context** to guide AI responses
+4. The context applies to all messages in the current session
+
+### Chat Features
+
+1. **Ask Questions**: Type your question in the input field
+2. **Real-time Responses**: Watch as the AI searches the web and streams responses
+3. **Search Progress**: Visual indicators show search stages (searching → reading → writing)
+4. **Copy Responses**: Click the copy button on any AI response
+
+### Tips for Better Results
+
+- Use the **Session Context** to specify your role or expertise level
+- Ask specific questions for more targeted search results
+- Try different contexts for the same question to get varied perspectives
 
 ## Development
 
@@ -147,20 +213,63 @@ The application uses several environment variables:
 - `TAVILY_API_KEY`: Required for web search
 - `LANGSMITH_*`: Optional for debugging and monitoring
 
-## Troubleshooting
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **Backend not starting**: Check if all dependencies are installed and API keys are configured
-2. **Frontend connection errors**: Ensure backend is running on port 8000
-3. **Search not working**: Verify Tavily API key is valid
-4. **AI responses failing**: Check Google Gemini API key and quota
+**Backend not starting:**
 
-### Error Messages
+- Verify Python virtual environment is activated
+- Check that all required environment variables are set in `.env`
+- Ensure API keys are valid and have proper permissions
 
-- "Failed to connect to server": Backend is not running or incorrect port
-- "Search error": Tavily API issues or network problems
-- "API quota exceeded": Check your API usage limits
+**Frontend not connecting to backend:**
+
+- Verify backend is running on `http://localhost:8000`
+- Check browser console for CORS or network errors
+- Try accessing `http://localhost:8000/health` directly
+
+**Search not working:**
+
+- Verify `TAVILY_API_KEY` is correctly set
+- Check Tavily API quota and rate limits
+- Ensure internet connection is stable
+
+**AI responses failing:**
+
+- Verify `GOOGLE_API_KEY` is correctly set
+- Check Google AI Studio quota and billing
+- Try with a simpler query first
+
+### Performance Tips
+
+- Use specific, focused queries for better search results
+- Set appropriate session context to reduce token usage
+- Monitor API usage in Google AI Studio and Tavily dashboards
+
+
+### Building for Production
+
+1. **Backend Deployment**:
+
+   ```bash
+   # Install production dependencies
+   pip install gunicorn
+
+   # Run with gunicorn
+   gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+   ```
+
+2. **Frontend Build**:
+
+   ```bash
+   cd client
+   npm run build
+   npm start
+   ```
+
+3. **Environment Variables**: Set production API keys and endpoints
+4. **Security**: Configure CORS, rate limiting, and authentication as needed
 
 ## Contributing
 

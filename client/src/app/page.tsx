@@ -51,6 +51,14 @@ const Home = () => {
   const [isContextVisible, setIsContextVisible] = useState(false);
   const [showContextHint, setShowContextHint] = useState(true);
 
+  // Add settings state
+  const [settings, setSettings] = useState({
+    searchResults: 3,
+    streamingEnabled: true,
+    autoScroll: true,
+    copyOnSelect: false
+  });
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
@@ -122,6 +130,9 @@ const Home = () => {
         if (sessionContext && sessionContext.trim()) {
           params.append('session_context', sessionContext);
         }
+
+        // Add search results setting
+        params.append('max_search_results', settings.searchResults.toString());
 
         if (params.toString()) {
           url += `?${params.toString()}`;
@@ -288,9 +299,9 @@ const Home = () => {
   };
 
   return (
-    <div className="flex justify-center bg-gray-100 min-h-screen py-8 px-4">
-      {/* Main container with refined shadow and border */}
-      <div className="w-[70%] bg-white flex flex-col rounded-xl shadow-lg border border-gray-100 overflow-hidden h-[90vh]">
+    <div className="flex justify-center bg-gray-100 min-h-screen py-4 sm:py-8 px-2 sm:px-4">
+      {/* Main container with refined shadow and border - responsive width */}
+      <div className="w-full sm:w-[90%] lg:w-[80%] xl:w-[70%] bg-white flex flex-col rounded-xl shadow-lg border border-gray-100 overflow-hidden h-[95vh] sm:h-[90vh] max-w-7xl">
         <Header
           onNewChat={handleNewChat}
           messagesCount={messages.length}
@@ -367,7 +378,7 @@ const Home = () => {
             />
           </>
         )}
-        {activeTab === 'SETTINGS' && <Settings />}
+        {activeTab === 'SETTINGS' && <Settings settings={settings} onSettingsChange={setSettings} />}
 
         {/* Session Context Component - Only show in CHAT tab */}
         {activeTab === 'CHAT' && (

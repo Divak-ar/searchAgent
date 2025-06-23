@@ -27,9 +27,7 @@ const Home = () => {
             title: "Real-time Streaming",
             description: "Watch your answers appear in real-time with live search progress tracking"
         }
-    ];
-
-    return (
+    ]; return (
         <div className="flex-grow bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-y-auto">
             <div className="min-h-full flex flex-col justify-center items-center px-8 py-12">
                 {/* Main Logo/Title */}
@@ -57,8 +55,7 @@ const Home = () => {
                             <div className="flex flex-col items-center text-center">
                                 <div className="mb-4">
                                     {feature.icon}
-                                </div>
-                                <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                                </div>                                <h3 className="text-xl font-semibold text-gray-800 mb-3">
                                     {feature.title}
                                 </h3>
                                 <p className="text-gray-600 leading-relaxed">
@@ -70,33 +67,21 @@ const Home = () => {
                 </div>
 
                 {/* Getting Started */}
-                <div className="text-center mb-12">
-                    <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-2xl mx-auto">
-                        <h3 className="text-2xl font-semibold text-gray-800 mb-4">Ready to get started?</h3>
-                        <p className="text-gray-600 mb-6">
-                            Click on the <span className="font-medium text-teal-600">CHAT</span> tab above to begin your search journey
-                        </p>
-                        <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                            <div className="flex items-center">
-                                <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                                Web Search Active
-                            </div>
-                            <div className="flex items-center">
-                                <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
-                                AI Model Ready
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer */}
-                <div className="text-center">
-                    <p className="text-sm text-gray-400 font-light tracking-wide">
-                        Powered by Advanced AI • Web Search Technology
+                <div className="text-center mb-12">                    <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-2xl mx-auto">
+                    <h3 className="text-2xl font-semibold text-gray-800 mb-4">Ready to get started?</h3>
+                    <p className="text-gray-600 mb-6">
+                        Click on the <span className="font-medium text-teal-600">CHAT</span> tab above to begin your search journey
                     </p>
-                    <div className="mt-2 text-xs text-gray-300">
-                        <span className="font-medium">Perplexity 2.0</span>
-                    </div>
+                    <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                        <div className="flex items-center">
+                            <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                            Web Search Active
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                            AI Model Ready
+                        </div>                        </div>
+                </div>
                 </div>
             </div>
         </div>
