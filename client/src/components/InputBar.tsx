@@ -1,9 +1,25 @@
-import { useState } from "react"
+import { useState, KeyboardEvent } from "react"
 
-const InputBar = ({ currentMessage, setCurrentMessage, onSubmit }) => {
+interface InputBarProps {
+    currentMessage: string;
+    setCurrentMessage: (message: string) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    isLoading?: boolean;
+}
 
-    const handleChange = (e) => {
+const InputBar = ({ currentMessage, setCurrentMessage, onSubmit, isLoading = false }: InputBarProps) => {
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setCurrentMessage(e.target.value)
+    }
+
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (currentMessage.trim() && !isLoading) {
+                onSubmit(e as any);
+            }
+        }
     }
 
     return (
@@ -12,6 +28,7 @@ const InputBar = ({ currentMessage, setCurrentMessage, onSubmit }) => {
                 <button
                     type="button"
                     className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                    title="Add emoji"
                 >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -19,14 +36,17 @@ const InputBar = ({ currentMessage, setCurrentMessage, onSubmit }) => {
                 </button>
                 <input
                     type="text"
-                    placeholder="Type a message"
+                    placeholder={isLoading ? "Waiting for response..." : "Ask me anything..."}
                     value={currentMessage}
                     onChange={handleChange}
-                    className="flex-grow px-4 py-2 bg-transparent focus:outline-none text-gray-700"
+                    onKeyDown={handleKeyDown}
+                    disabled={isLoading}
+                    className="flex-grow px-4 py-2 bg-transparent focus:outline-none text-gray-700 disabled:text-gray-400"
                 />
                 <button
                     type="button"
                     className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all duration-200"
+                    title="Attach file"
                 >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
@@ -34,11 +54,20 @@ const InputBar = ({ currentMessage, setCurrentMessage, onSubmit }) => {
                 </button>
                 <button
                     type="submit"
-                    className="bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-600 hover:to-teal-500 rounded-full p-3 ml-2 shadow-md transition-all duration-200 group"
+                    disabled={!currentMessage.trim() || isLoading}
+                    className={`rounded-full p-3 ml-2 shadow-md transition-all duration-200 group ${!currentMessage.trim() || isLoading
+                            ? 'bg-gray-300 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-600 hover:to-teal-500'
+                        }`}
+                    title="Send message"
                 >
-                    <svg className="w-6 h-6 text-white transform rotate-45 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
+                    {isLoading ? (
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                        <svg className="w-6 h-6 text-white transform rotate-45 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    )}
                 </button>
             </div>
         </form>

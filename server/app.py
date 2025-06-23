@@ -199,3 +199,22 @@ async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None)):
         media_type="text/event-stream"
     )
 
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "message": "Search Agent API is running",
+        "version": "1.0.0"
+    }
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to Search Agent API",
+        "endpoints": {
+            "health": "/health",
+            "chat": "/chat_stream/{message}?checkpoint_id={optional}"
+        }
+    }
+
