@@ -126,47 +126,12 @@ The application will be available at:
 - Backend: http://localhost:8000
 - Backend Health Check: http://localhost:8000/health
 
-## 🔗 API Endpoints
-
-### GET /health
-
-Health check endpoint to verify backend status.
-
-**Response**: `{"status": "healthy", "timestamp": "..."}`
-
-### GET /status
-
-Detailed system status including AI model and search provider information.
-
-### GET /
-
-Welcome message with available endpoints.
-
-### GET /chat_stream/{message}
-
-Streaming chat endpoint with optional parameters for conversation continuity and session context.
-
-**Parameters:**
-
-- `message`: The user's query (URL encoded)
-- `checkpoint_id`: Optional conversation ID for multi-turn conversations
-- `session_context`: Optional custom context to guide AI responses
-
-**Response**: Server-sent events stream with:
-
-- `checkpoint`: New conversation ID
-- `search_start`: Search initiation with query
-- `search_results`: Found URLs and sources
-- `content`: Streamed AI response chunks
-- `end`: Stream completion signal
-
 ## Usage
 
 1. Open the frontend application in your browser
 2. Type your question in the input field
 3. Watch as the AI searches the web and compiles a response
 4. Copy responses using the copy button
-
 
 ### Navigation
 
@@ -212,34 +177,6 @@ The application uses several environment variables:
 - `GOOGLE_API_KEY`: Required for AI responses
 - `TAVILY_API_KEY`: Required for web search
 - `LANGSMITH_*`: Optional for debugging and monitoring
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**Backend not starting:**
-
-- Verify Python virtual environment is activated
-- Check that all required environment variables are set in `.env`
-- Ensure API keys are valid and have proper permissions
-
-**Frontend not connecting to backend:**
-
-- Verify backend is running on `http://localhost:8000`
-- Check browser console for CORS or network errors
-- Try accessing `http://localhost:8000/health` directly
-
-**Search not working:**
-
-- Verify `TAVILY_API_KEY` is correctly set
-- Check Tavily API quota and rate limits
-- Ensure internet connection is stable
-
-**AI responses failing:**
-
-- Verify `GOOGLE_API_KEY` is correctly set
-- Check Google AI Studio quota and billing
-- Try with a simpler query first
 
 ### Performance Tips
 
