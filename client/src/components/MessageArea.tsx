@@ -1,5 +1,163 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Enhanced markdown-like formatter for better text display
+const formatContent = (content: string) => {
+    if (!content) return content;
+
+    // Handle code blocks first
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+        // Add text before code block
+        if (match.index > lastIndex) {
+            parts.push({
+                type: 'text',
+                content: content.slice(lastIndex, match.index)
+            });
+        }
+
+        // Add code block
+        parts.push({
+            type: 'code',
+            language: match[1] || 'text',
+            content: match[2]
+        });
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+        parts.push({
+            type: 'text',
+            content: content.slice(lastIndex)
+        });
+    }
+
+    // If no code blocks found, treat entire content as text
+    if (parts.length === 0) {
+        parts.push({
+            type: 'text',
+            content: content
+        });
+    }
+
+    return (
+        <div className="prose prose-sm max-w-none">
+            {parts.map((part, partIndex) => {
+                if (part.type === 'code') {
+                    return (
+                        <div key={partIndex} className="my-4">
+                            <div className="bg-gray-900 rounded-lg overflow-hidden">
+                                <div className="bg-gray-800 px-4 py-2 text-xs text-gray-300 border-b border-gray-700">
+                                    {part.language}
+                                </div>
+                                <pre className="p-4 text-sm text-gray-100 overflow-x-auto">
+                                    <code>{part.content}</code>
+                                </pre>
+                            </div>
+                        </div>
+                    );
+                }
+
+                // Format regular text
+                const lines = part.content.split('\n');
+                const formattedLines = lines.map((line, index) => {
+                    // Handle headers
+                    if (line.startsWith('### ')) {
+                        return <h3 key={index} className="text-lg font-semibold mt-4 mb-2 text-gray-800">{line.substring(4)}</h3>;
+                    }
+                    if (line.startsWith('## ')) {
+                        return <h2 key={index} className="text-xl font-semibold mt-4 mb-2 text-gray-800">{line.substring(3)}</h2>;
+                    }
+                    if (line.startsWith('# ')) {
+                        return <h1 key={index} className="text-2xl font-bold mt-4 mb-2 text-gray-800">{line.substring(2)}</h1>;
+                    }
+
+                    // Handle bullet points
+                    if (line.startsWith('- ') || line.startsWith('* ')) {
+                        return (
+                            <div key={index} className="flex items-start mb-1 pl-4">
+                                <span className="text-teal-500 mr-2 mt-1">•</span>
+                                <span>{line.substring(2)}</span>
+                            </div>
+                        );
+                    }
+
+                    // Handle numbered lists
+                    const numberedMatch = line.match(/^(\d+)\.\s(.+)/);
+                    if (numberedMatch) {
+                        return (
+                            <div key={index} className="flex items-start mb-1 pl-4">
+                                <span className="text-teal-500 mr-2 mt-1 font-medium">{numberedMatch[1]}.</span>
+                                <span>{numberedMatch[2]}</span>
+                            </div>
+                        );
+                    }
+
+                    // Handle inline code
+                    if (line.includes('`')) {
+                        const inlineCodeRegex = /`([^`]+)`/g;
+                        const segments = [];
+                        let lastIdx = 0;
+                        let inlineMatch;
+
+                        while ((inlineMatch = inlineCodeRegex.exec(line)) !== null) {
+                            if (inlineMatch.index > lastIdx) {
+                                segments.push(line.slice(lastIdx, inlineMatch.index));
+                            }
+                            segments.push(
+                                <code key={inlineMatch.index} className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800">
+                                    {inlineMatch[1]}
+                                </code>
+                            );
+                            lastIdx = inlineMatch.index + inlineMatch[0].length;
+                        }
+
+                        if (lastIdx < line.length) {
+                            segments.push(line.slice(lastIdx));
+                        }
+
+                        return (
+                            <p key={index} className="mb-2 leading-relaxed">
+                                {segments}
+                            </p>
+                        );
+                    }
+
+                    // Handle bold text
+                    if (line.includes('**')) {
+                        const boldParts = line.split(/(\*\*[^*]+\*\*)/);
+                        return (
+                            <p key={index} className="mb-2 leading-relaxed">
+                                {boldParts.map((part, boldIndex) => {
+                                    if (part.startsWith('**') && part.endsWith('**')) {
+                                        return <strong key={boldIndex} className="font-semibold text-gray-800">{part.slice(2, -2)}</strong>;
+                                    }
+                                    return part;
+                                })}
+                            </p>
+                        );
+                    }
+
+                    // Handle empty lines
+                    if (line.trim() === '') {
+                        return <br key={index} />;
+                    }
+
+                    // Regular paragraphs
+                    return <p key={index} className="mb-2 leading-relaxed text-gray-700">{line}</p>;
+                });
+
+                return <div key={partIndex}>{formattedLines}</div>;
+            })}
+        </div>
+    );
+};
+
 interface SearchInfo {
     stages: string[];
     query: string;
@@ -204,7 +362,9 @@ const MessageArea = ({ messages }: MessageAreaProps) => {
                                     <PremiumTypingAnimation />
                                 ) : (
                                     <div className="pr-8">
-                                        {message.content || (
+                                        {message.content ? (
+                                            formatContent(message.content)
+                                        ) : (
                                             // Fallback if content is empty but not in loading state
                                             <span className="text-gray-400 text-xs italic">Waiting for response...</span>
                                         )}

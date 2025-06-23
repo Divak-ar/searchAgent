@@ -3,6 +3,9 @@
 import Header from '@/components/Header';
 import InputBar from '@/components/InputBar';
 import MessageArea from '@/components/MessageArea';
+import HomePage from '@/components/Home';
+import Settings from '@/components/Settings';
+import SessionContext from '@/components/SessionContext';
 import React, { useState } from 'react';
 
 interface SearchInfo {
@@ -31,6 +34,7 @@ interface SSEData {
 }
 
 const Home = () => {
+  const [activeTab, setActiveTab] = useState('CHAT');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -43,6 +47,13 @@ const Home = () => {
   const [checkpointId, setCheckpointId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [sessionContext, setSessionContext] = useState("");
+  const [isContextVisible, setIsContextVisible] = useState(false);
+  const [showContextHint, setShowContextHint] = useState(true);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
 
   const handleNewChat = () => {
     setMessages([
@@ -56,6 +67,7 @@ const Home = () => {
     setCheckpointId(null);
     setCurrentMessage("");
     setConnectionError(null);
+    setActiveTab('CHAT'); // Switch to chat when starting new chat
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,10 +111,20 @@ const Home = () => {
           }
         ]);
 
-        // Create URL with checkpoint ID if it exists
+        // Create URL with checkpoint ID and session context if they exist
         let url = `http://127.0.0.1:8000/chat_stream/${encodeURIComponent(userInput)}`;
+        const params = new URLSearchParams();
+
         if (checkpointId) {
-          url += `?checkpoint_id=${encodeURIComponent(checkpointId)}`;
+          params.append('checkpoint_id', checkpointId);
+        }
+
+        if (sessionContext && sessionContext.trim()) {
+          params.append('session_context', sessionContext);
+        }
+
+        if (params.toString()) {
+          url += `?${params.toString()}`;
         }
 
         // Connect to SSE endpoint using EventSource
@@ -269,10 +291,15 @@ const Home = () => {
     <div className="flex justify-center bg-gray-100 min-h-screen py-8 px-4">
       {/* Main container with refined shadow and border */}
       <div className="w-[70%] bg-white flex flex-col rounded-xl shadow-lg border border-gray-100 overflow-hidden h-[90vh]">
-        <Header onNewChat={handleNewChat} messagesCount={messages.length} />
+        <Header
+          onNewChat={handleNewChat}
+          messagesCount={messages.length}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
 
         {/* Connection Error Banner */}
-        {connectionError && (
+        {connectionError && activeTab === 'CHAT' && (
           <div className="bg-red-50 border-l-4 border-red-400 p-4 mx-4 mt-4 rounded">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -297,13 +324,60 @@ const Home = () => {
           </div>
         )}
 
-        <MessageArea messages={messages} />
-        <InputBar
-          currentMessage={currentMessage}
-          setCurrentMessage={setCurrentMessage}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-        />
+        {/* Tab Content */}
+        {activeTab === 'HOME' && <HomePage />}
+        {activeTab === 'CHAT' && (
+          <>
+            {/* Context Hint - Show only once */}
+            {showContextHint && (
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mx-4 mt-4 rounded">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      💡 <strong>Pro tip:</strong> Click the context button (bottom right) to set custom instructions for the AI.
+                      This helps guide responses for your specific needs!
+                    </p>
+                  </div>
+                  <div className="ml-auto pl-3">
+                    <button
+                      onClick={() => setShowContextHint(false)}
+                      className="text-blue-400 hover:text-blue-600"
+                    >
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <MessageArea messages={messages} />
+            <InputBar
+              currentMessage={currentMessage}
+              setCurrentMessage={setCurrentMessage}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              placeholder={sessionContext ? "Ask with custom context..." : "Ask me anything..."}
+            />
+          </>
+        )}
+        {activeTab === 'SETTINGS' && <Settings />}
+
+        {/* Session Context Component - Only show in CHAT tab */}
+        {activeTab === 'CHAT' && (
+          <SessionContext
+            sessionContext={sessionContext}
+            setSessionContext={setSessionContext}
+            isVisible={isContextVisible}
+            setIsVisible={setIsContextVisible}
+          />
+        )}
       </div>
     </div>
   );

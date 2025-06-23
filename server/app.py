@@ -90,7 +90,11 @@ graph_builder.add_edge("tool_node", "model")
 graph = graph_builder.compile(checkpointer=memory)
 
 # creating the FastAPI app
-app = FastAPI()
+app = FastAPI(
+    title="Search Agent API",
+    description="AI-powered search agent with real-time streaming responses",
+    version="2.0.0"
+)
 
 # Add CORS middleware with settings that match frontend requirements
 app.add_middleware(
@@ -104,98 +108,123 @@ app.add_middleware(
 
 def serialise_ai_message_chunk(chunk): 
     if(isinstance(chunk, AIMessageChunk)):
-        return chunk.content
+        # Clean and format the content
+        content = chunk.content
+        if content:
+            # Ensure proper spacing after periods
+            content = content.replace('. ', '. ')
+            # Clean up multiple spaces
+            content = ' '.join(content.split())
+        return content
     else:
         raise TypeError(
             f"Object of type {type(chunk).__name__} is not correctly formatted for serialisation"
         )
 
 
-async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = None):
-    is_new_conversation = checkpoint_id is None
-    
-    # if it's a new chat (there is checkout_id)
-    if is_new_conversation:
-        # Generate new checkpoint ID for first message in conversation
-        new_checkpoint_id = str(uuid4())
+async def generate_chat_responses(message: str, checkpoint_id: Optional[str] = None, session_context: Optional[str] = None):
+    try:
+        is_new_conversation = checkpoint_id is None
+        
+        # Prepare the user message with session context if provided
+        user_message = message
+        if session_context and session_context.strip():
+            user_message = f"Session Context: {session_context}\n\nUser Query: {message}"
+        
+        # if it's a new chat (there is checkout_id)
+        if is_new_conversation:
+            # Generate new checkpoint ID for first message in conversation
+            new_checkpoint_id = str(uuid4())
 
-        config = {
-            "configurable": {
-                "thread_id": new_checkpoint_id
+            config = {
+                "configurable": {
+                    "thread_id": new_checkpoint_id
+                }
             }
-        }
-        
-        # Initialize with first message
-        events = graph.astream_events(
-            {"messages": [HumanMessage(content=message)]},
-            version="v2",
-            config=config
-        )
-        
-        # First send the checkpoint ID
-        yield f"data: {{\"type\": \"checkpoint\", \"checkpoint_id\": \"{new_checkpoint_id}\"}}\n\n"
-    else:
-        # if there is an checkpoint_id
-        config = {
-            "configurable": {
-                "thread_id": checkpoint_id
+            
+            # Initialize with first message
+            events = graph.astream_events(
+                {"messages": [HumanMessage(content=user_message)]},
+                version="v2",
+                config=config
+            )
+            
+            # First send the checkpoint ID
+            yield f"data: {{\"type\": \"checkpoint\", \"checkpoint_id\": \"{new_checkpoint_id}\"}}\n\n"
+        else:
+            # if there is an checkpoint_id
+            config = {
+                "configurable": {
+                    "thread_id": checkpoint_id
+                }
             }
-        }
-        # Continue existing conversation
-        events = graph.astream_events(
-            {"messages": [HumanMessage(content=message)]},
-            version="v2",
-            config=config
-        )
+            # Continue existing conversation
+            events = graph.astream_events(
+                {"messages": [HumanMessage(content=user_message)]},
+                version="v2",
+                config=config
+            )
 
-    async for event in events:
-        event_type = event["event"]
+        async for event in events:
+            try:
+                event_type = event["event"]
+                
+                if event_type == "on_chat_model_stream":
+                    # getting the chunks from the response 
+                    chunk_content = serialise_ai_message_chunk(event["data"]["chunk"])
+                    # Properly escape content for JSON
+                    safe_content = json.dumps(chunk_content)[1:-1]  # Remove the outer quotes
+                    
+                    yield f"data: {{\"type\": \"content\", \"content\": \"{safe_content}\"}}\n\n"
+                    
+                elif event_type == "on_chat_model_end":
+                    # Check if there are tool calls for search
+                    tool_calls = event["data"]["output"].tool_calls if hasattr(event["data"]["output"], "tool_calls") else []
+                    search_calls = [call for call in tool_calls if call["name"] == "tavily_search_results_json"]
+                    
+                    if search_calls:
+                        # Signal that a search is starting
+                        search_query = search_calls[0]["args"].get("query", "")
+                        # Properly escape query for JSON
+                        safe_query = json.dumps(search_query)[1:-1]  # Remove the outer quotes
+                        yield f"data: {{\"type\": \"search_start\", \"query\": \"{safe_query}\"}}\n\n"
+                        
+                elif event_type == "on_tool_end" and event["name"] == "tavily_search_results_json":
+                    # Search completed - send results or error
+                    output = event["data"]["output"]
+                    
+                    # Check if output is a list 
+                    if isinstance(output, list):
+                        # Extract URLs from list of search results
+                        urls = []
+                        for item in output:
+                            if isinstance(item, dict) and "url" in item:
+                                urls.append(item["url"])
+                        
+                        # Convert URLs to JSON and yield them
+                        urls_json = json.dumps(urls)
+                        yield f"data: {{\"type\": \"search_results\", \"urls\": {urls_json}}}\n\n"
+                        
+            except Exception as e:
+                print(f"Error processing event: {e}")
+                error_msg = json.dumps(str(e))[1:-1]
+                yield f"data: {{\"type\": \"error\", \"error\": \"{error_msg}\"}}\n\n"
+                continue
         
-        if event_type == "on_chat_model_stream":
-            # getting the chunks from the response 
-            chunk_content = serialise_ai_message_chunk(event["data"]["chunk"])
-            # Escape single quotes and newlines for safe JSON parsing
-            safe_content = chunk_content.replace("'", "\\'").replace("\n", "\\n")
-            
-            yield f"data: {{\"type\": \"content\", \"content\": \"{safe_content}\"}}\n\n"
-            
-        elif event_type == "on_chat_model_end":
-            # Check if there are tool calls for search
-            tool_calls = event["data"]["output"].tool_calls if hasattr(event["data"]["output"], "tool_calls") else []
-            search_calls = [call for call in tool_calls if call["name"] == "tavily_search_results_json"]
-            
-            if search_calls:
-                # Signal that a search is starting
-                search_query = search_calls[0]["args"].get("query", "")
-                # Escape quotes and special characters
-                safe_query = search_query.replace('"', '\\"').replace("'", "\\'").replace("\n", "\\n")
-                yield f"data: {{\"type\": \"search_start\", \"query\": \"{safe_query}\"}}\n\n"
-                
-        elif event_type == "on_tool_end" and event["name"] == "tavily_search_results_json":
-            # Search completed - send results or error
-            output = event["data"]["output"]
-            
-            # Check if output is a list 
-            if isinstance(output, list):
-                # Extract URLs from list of search results
-                urls = []
-                for item in output:
-                    if isinstance(item, dict) and "url" in item:
-                        urls.append(item["url"])
-                
-                # Convert URLs to JSON and yield them
-                urls_json = json.dumps(urls)
-                yield f"data: {{\"type\": \"search_results\", \"urls\": {urls_json}}}\n\n"
-    
-    # Send an end event
-    yield f"data: {{\"type\": \"end\"}}\n\n"
+        # Send an end event
+        yield f"data: {{\"type\": \"end\"}}\n\n"
+        
+    except Exception as e:
+        print(f"Error in generate_chat_responses: {e}")
+        error_msg = json.dumps(str(e))[1:-1]
+        yield f"data: {{\"type\": \"error\", \"error\": \"{error_msg}\"}}\n\n"
 
 
 @app.get("/chat_stream/{message}")
 # SSE - server-sent events 
-async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None)):
+async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None), session_context: Optional[str] = Query(None)):
     return StreamingResponse(
-        generate_chat_responses(message, checkpoint_id), 
+        generate_chat_responses(message, checkpoint_id, session_context), 
         media_type="text/event-stream"
     )
 
@@ -204,8 +233,36 @@ async def chat_stream(message: str, checkpoint_id: Optional[str] = Query(None)):
 async def health_check():
     return {
         "status": "healthy",
-        "message": "Search Agent API is running",
-        "version": "1.0.0"
+        "version": "2.0.0",
+        "timestamp": "2025-06-23T00:00:00Z",
+        "services": {
+            "llm": "Google Gemini 2.0 Flash",
+            "search": "Tavily API",
+            "streaming": "Server-Sent Events"
+        }
+    }
+
+# Get system status
+@app.get("/status")
+async def get_status():
+    try:
+        # Test LLM connection
+        test_result = await llm.ainvoke([HumanMessage(content="Hello")])
+        llm_status = "online"
+    except Exception as e:
+        llm_status = "offline"
+    
+    try:
+        # Test search tool
+        search_result = await search_tool.ainvoke({"query": "test"})
+        search_status = "online"
+    except Exception as e:
+        search_status = "offline"
+    
+    return {
+        "llm_status": llm_status,
+        "search_status": search_status,
+        "memory_status": "online" if memory else "offline"
     }
 
 @app.get("/")
